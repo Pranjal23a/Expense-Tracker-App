@@ -6,7 +6,8 @@ import "./App.css";
 
 function App() {
   const [expenses, setExpenses] = useState([]);
-  const [editedExpense, setEditedExpense] = useState(null);
+  const [check, setCheck] = useState(false);
+  const [editedExpense, setEditedExpense] = useState({});
 
   const addExpense = (expense) => {
     setExpenses((prevState) => [expense, ...prevState]);
@@ -19,31 +20,40 @@ function App() {
     });
   };
 
-  const editExpense = (editedExpenseData) => {
+  const editExpense = (expense) => {
     // Find the index of the edited expense in the expenses array
-    const editedExpenseIndex = expenses.findIndex(
-      (expense) => expense.id === editedExpenseData.id
-    );
+    const indexToEdit = expenses.findIndex((ex) => ex.id === expense.id);
 
-    // Create a copy of the expenses array with the edited expense replaced
+
+    // Make a copy of the expenses array
     const updatedExpenses = [...expenses];
-    updatedExpenses[editedExpenseIndex] = editedExpenseData;
 
-    // Update the expenses state and reset the edited expense state
+    // Update the copy of the expenses array with the edited expense
+    updatedExpenses[indexToEdit] = expense;
+    // console.log(updatedExpenses);
+
+    // Set the state with the updated expenses array
     setExpenses(updatedExpenses);
-    setEditedExpense(null);
+
+    setEditedExpense({});
+    setCheck(false);
   };
+  const edit = (id) => {
+    const x = expenses.filter((expense) => expense.id === id);
+    setEditedExpense(x[0]);
+    setCheck(true);
+  }
 
   return (
     <>
       <h2 className="mainHeading">Expense Tracker</h2>
       <div className="App">
-        <ExpenseForm addExpense={addExpense} editExpense={editExpense}
-          editedExpense={editedExpense} />
+        <ExpenseForm addExpense={addExpense}
+          editedExpense={editedExpense} check={check} editExpense={editExpense} />
         <div className="expenseContainer">
           <ExpenseInfo expenses={expenses} />
           <ExpenseList expenses={expenses} deleteExpense={deleteExpense}
-            setEditedExpense={setEditedExpense} />
+            edit={edit} />
         </div>
       </div>
     </>
