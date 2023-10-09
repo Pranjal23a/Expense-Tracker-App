@@ -1,59 +1,82 @@
-import { useState } from "react";
+import { useState, useReducer } from "react";
 import ExpenseForm from "./components/ExpenseForm/ExpenseForm";
 import ExpenseInfo from "./components/ExpenseInfo/ExpenseInfo";
 import ExpenseList from "./components/ExpenseList/ExpenseList";
 import "./App.css";
 
+const reducer = (state, action) => {
+  const { payload } = action;
+  switch (action.type) {
+    case "ADD_EXPENSE": {
+      return {
+        expenses: [payload.expense, ...state.expenses]
+      };
+    }
+    case "REMOVE_EXPENSE": {
+      return {
+        expenses: state.expenses.filter((expense) => expense.id !== payload.id)
+      };
+    }
+    case "UPDATE_EXPENSE": {
+      const expensesDuplicate = state.expenses;
+      expensesDuplicate[payload.expensePos] = payload.expense;
+      return {
+        expenses: expensesDuplicate
+      };
+    }
+    default:
+      return state;
+  }
+};
+
 function App() {
-  const [expenses, setExpenses] = useState([]);
-  const [check, setCheck] = useState(false);
-  const [editedExpense, setEditedExpense] = useState({});
+  const [state, dispatch] = useReducer(reducer, { expenses: [] });
+  const [expenseToUpdate, setExpenseToUpdate] = useState(null);
 
   const addExpense = (expense) => {
-    setExpenses((prevState) => [expense, ...prevState]);
+    dispatch({ type: "ADD_EXPENSE", payload: { expense } });
   };
-
 
   const deleteExpense = (id) => {
-    setExpenses((prevExpenses) => {
-      return prevExpenses.filter((expense) => expense.id !== id);
-    });
+    dispatch({ type: "REMOVE_EXPENSE", payload: { id } });
   };
 
-  const editExpense = (expense) => {
-    // Find the index of the edited expense in the expenses array
-    const indexToEdit = expenses.findIndex((ex) => ex.id === expense.id);
-
-
-    // Make a copy of the expenses array
-    const updatedExpenses = [...expenses];
-
-    // Update the copy of the expenses array with the edited expense
-    updatedExpenses[indexToEdit] = expense;
-    // console.log(updatedExpenses);
-
-    // Set the state with the updated expenses array
-    setExpenses(updatedExpenses);
-
-    setEditedExpense({});
-    setCheck(false);
+  const resetExpenseToUpdate = () => {
+    setExpenseToUpdate(null);
   };
-  const edit = (id) => {
-    const x = expenses.filter((expense) => expense.id === id);
-    setEditedExpense(x[0]);
-    setCheck(true);
-  }
+
+  const updateExpense = (expense) => {
+    const expensePos = state.expenses
+      .map(function (exp) {
+        return exp.id;
+      })
+      .indexOf(expense.id);
+
+    if (expensePos === -1) {
+      return false;
+    }
+
+    dispatch({ type: "UPDATE_EXPENSE", payload: { expensePos, expense } });
+    return true;
+  };
 
   return (
     <>
       <h2 className="mainHeading">Expense Tracker</h2>
       <div className="App">
-        <ExpenseForm addExpense={addExpense}
-          editedExpense={editedExpense} check={check} editExpense={editExpense} />
+        <ExpenseForm
+          addExpense={addExpense}
+          expenseToUpdate={expenseToUpdate}
+          updateExpense={updateExpense}
+          resetExpenseToUpdate={resetExpenseToUpdate}
+        />
         <div className="expenseContainer">
-          <ExpenseInfo expenses={expenses} />
-          <ExpenseList expenses={expenses} deleteExpense={deleteExpense}
-            edit={edit} />
+          <ExpenseInfo expenses={state.expenses} />
+          <ExpenseList
+            expenses={state.expenses}
+            deleteExpense={deleteExpense}
+            changeExpenseToUpdate={setExpenseToUpdate}
+          />
         </div>
       </div>
     </>
