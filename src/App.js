@@ -10,8 +10,15 @@ import ExpenseList from "./components/ExpenseList/ExpenseList";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// import firebase methods here
-import { doc, collection, addDoc, setDoc, getDocs, onSnapshot } from "firebase/firestore";
+// firebase imports
+import {
+  doc,
+  collection,
+  addDoc,
+  updateDoc,
+  getDocs,
+  deleteDoc
+} from "firebase/firestore";
 import { db } from "./firebaseInit";
 
 const reducer = (state, action) => {
@@ -49,17 +56,14 @@ function App() {
   const [expenseToUpdate, setExpenseToUpdate] = useState(null);
 
   const getData = async () => {
-    // change this to retrive expenses from firestore in realtime
-    const unsub = onSnapshot(collection(db, "expenses"), (Snapshot) => {
-      const expenses = Snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+    const snapshot = await getDocs(collection(db, "expenses"));
+    const expenses = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data()
+    }));
 
-      dispatch({ type: "GET_EXPENSES", payload: { expenses } });
-      toast.success("Expenses retrived successfully.");
-    });
-
+    dispatch({ type: "GET_EXPENSES", payload: { expenses } });
+    toast.success("Expenses retrived successfully.");
   };
 
   useEffect(() => {
@@ -69,6 +73,7 @@ function App() {
   const addExpense = async (expense) => {
     const expenseRef = collection(db, "expenses");
     const docRef = await addDoc(expenseRef, expense);
+
     dispatch({
       type: "ADD_EXPENSE",
       payload: { expense: { id: docRef.id, ...expense } }
@@ -76,8 +81,12 @@ function App() {
     toast.success("Expense added successfully.");
   };
 
-  const deleteExpense = (id) => {
+  const deleteExpense = async (id) => {
+    const docRef = doc(db, "expenses", id);
+    await deleteDoc(docRef);
+
     dispatch({ type: "REMOVE_EXPENSE", payload: { id } });
+    toast.success("Expense deleted successfully.");
   };
 
   const resetExpenseToUpdate = () => {
@@ -86,17 +95,13 @@ function App() {
 
   const updateExpense = async (expense) => {
     const expensePos = state.expenses
-      .map(function (exp) {
-        return exp.id;
-      })
-      .indexOf(expense.id);
-
+      .findIndex((exp) => exp.id === expense.id);
     if (expensePos === -1) {
       return false;
     }
 
     const expenseRef = doc(db, "expenses", expense.id);
-    await setDoc(expenseRef, expense);
+    await updateDoc(expenseRef, expense);
 
     dispatch({ type: "UPDATE_EXPENSE", payload: { expensePos, expense } });
     toast.success("Expense updated successfully.");
